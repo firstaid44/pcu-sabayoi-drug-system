@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>ระบบคลังยา — PCU สะบ้าย้อย</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060D18;
+  --s1: #0E1829;
+  --s2: #162236;
+  --border: rgba(255,255,255,.08);
+  --border2: rgba(255,255,255,.15);
+  --blue: #3D9EFF;
+  --teal: #00E5C4;
+  --green: #22D47A;
+  --amber: #FFB830;
+  --red: #FF5A5A;
+  --purple: #A78BFA;
+  --text1: #EEF2FF;
+  --text2: #8BA3C4;
+  --text3: #3D5470;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans Thai', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text1);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Ambient background ── */
+.ambient {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 10%, rgba(61,158,255,.1) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 80%, rgba(0,229,196,.07) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 60% 30%, rgba(167,139,250,.05) 0%, transparent 55%);
+}
+/* subtle grid */
+.grid-overlay {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.015) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.wrap {
+  position: relative; z-index: 1;
+  max-width: 480px; margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 2rem) 1.25rem calc(env(safe-area-inset-bottom) + 2rem);
+}
+
+/* ── Header ── */
+.hdr {
+  text-align: center; margin-bottom: 2.5rem;
+  animation: fadeUp .5s cubic-bezier(.34,1.2,.64,1) both;
+}
+@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+
+.logo-ring {
+  width: 86px; height: 86px; border-radius: 26px; margin: 0 auto 1.25rem;
+  background: linear-gradient(145deg, #0F2744 0%, #0A1929 100%);
+  border: 1px solid rgba(61,158,255,.2);
+  display: flex; align-items: center; justify-content: center; font-size: 40px;
+  box-shadow: 0 0 0 1px rgba(61,158,255,.08), 0 20px 60px rgba(0,0,0,.5),
+              inset 0 1px 0 rgba(255,255,255,.05);
+  animation: logoBounce .7s cubic-bezier(.34,1.6,.64,1) .1s both;
+}
+@keyframes logoBounce { from { transform:scale(.4); opacity:0; } to { transform:none; opacity:1; } }
+
+.sys-title {
+  font-size: 22px; font-weight: 700; letter-spacing: -.4px;
+  background: linear-gradient(135deg, #EEF2FF 30%, var(--blue));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; margin-bottom: .35rem;
+}
+.sys-sub { font-size: 13px; color: var(--text2); line-height: 1.5; }
+
+/* ── Status bar ── */
+.status-bar {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(34,212,122,.06); border: 1px solid rgba(34,212,122,.15);
+  border-radius: 12px; padding: 10px 14px; margin-bottom: 1.75rem;
+  font-size: 12px; color: var(--green); font-weight: 600;
+  animation: fadeUp .4s ease .2s both;
+}
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+  box-shadow: 0 0 0 3px rgba(34,212,122,.2); flex-shrink: 0;
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink {
+  0%,100% { box-shadow: 0 0 0 3px rgba(34,212,122,.2); }
+  50% { box-shadow: 0 0 0 6px rgba(34,212,122,.0); }
+}
+
+/* ── Section label ── */
+.sec-label {
+  font-size: 10px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: .75rem;
+}
+
+/* ── App cards ── */
+.cards { display: flex; flex-direction: column; gap: 12px; margin-bottom: 1.75rem; }
+
+.app-card {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: 20px; overflow: hidden; cursor: pointer;
+  text-decoration: none; display: block;
+  transition: transform .18s cubic-bezier(.34,1.4,.64,1), border-color .18s, box-shadow .18s;
+  position: relative;
+  animation: cardIn .4s cubic-bezier(.34,1.2,.64,1) both;
+}
+.app-card:nth-child(1) { animation-delay: .3s; }
+.app-card:nth-child(2) { animation-delay: .4s; }
+.app-card:nth-child(3) { animation-delay: .5s; }
+@keyframes cardIn { from { opacity:0; transform:translateY(16px) scale(.97); } to { opacity:1; transform:none; } }
+
+.app-card:hover, .app-card:active {
+  transform: translateY(-2px) scale(1.005);
+  box-shadow: 0 12px 40px rgba(0,0,0,.3);
+}
+.app-card.blue:hover  { border-color: rgba(61,158,255,.3); box-shadow: 0 12px 40px rgba(61,158,255,.12); }
+.app-card.teal:hover  { border-color: rgba(0,229,196,.25); box-shadow: 0 12px 40px rgba(0,229,196,.1); }
+.app-card.amber:hover { border-color: rgba(255,184,48,.25); box-shadow: 0 12px 40px rgba(255,184,48,.1); }
+
+/* top accent line */
+.app-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  opacity: 0; transition: opacity .2s;
+}
+.app-card.blue::before  { background: linear-gradient(90deg, var(--blue), var(--teal)); }
+.app-card.teal::before  { background: linear-gradient(90deg, var(--teal), var(--green)); }
+.app-card.amber::before { background: linear-gradient(90deg, var(--amber), #FF9100); }
+.app-card:hover::before { opacity: 1; }
+
+.card-inner { padding: 18px 20px; display: flex; align-items: center; gap: 16px; }
+
+.card-icon {
+  width: 52px; height: 52px; border-radius: 15px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 24px;
+  position: relative;
+}
+.app-card.blue  .card-icon { background: rgba(61,158,255,.1); box-shadow: 0 0 0 1px rgba(61,158,255,.15); }
+.app-card.teal  .card-icon { background: rgba(0,229,196,.08); box-shadow: 0 0 0 1px rgba(0,229,196,.12); }
+.app-card.amber .card-icon { background: rgba(255,184,48,.08); box-shadow: 0 0 0 1px rgba(255,184,48,.12); }
+
+.card-text { flex: 1; min-width: 0; }
+.card-title { font-size: 15px; font-weight: 700; color: var(--text1); margin-bottom: 3px; }
+.card-desc { font-size: 12px; color: var(--text2); line-height: 1.5; }
+
+.card-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.tag {
+  padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700;
+}
+.app-card.blue  .tag { background: rgba(61,158,255,.1); color: var(--blue); }
+.app-card.teal  .tag { background: rgba(0,229,196,.08); color: var(--teal); }
+.app-card.amber .tag { background: rgba(255,184,48,.08); color: var(--amber); }
+
+.card-arrow {
+  font-size: 20px; color: var(--text3); flex-shrink: 0;
+  transition: transform .2s, color .2s;
+}
+.app-card:hover .card-arrow { transform: translateX(4px); color: var(--text2); }
+
+/* ── Quick stats ── */
+.quick-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  margin-bottom: 1.75rem;
+  animation: fadeUp .4s ease .6s both;
+}
+.qs-card {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px 12px; text-align: center;
+}
+.qs-val { font-size: 24px; font-weight: 700; font-family: var(--mono); line-height: 1; margin-bottom: 4px; }
+.qs-label { font-size: 10px; color: var(--text3); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+.qs-blue  .qs-val { color: var(--blue); }
+.qs-teal  .qs-val { color: var(--teal); }
+.qs-amber .qs-val { color: var(--amber); }
+
+/* ── Footer ── */
+.footer {
+  text-align: center; font-size: 11px; color: var(--text3);
+  line-height: 1.8; padding-top: .5rem;
+  animation: fadeUp .4s ease .7s both;
+  border-top: 1px solid var(--border); padding-top: 1rem;
+}
+.footer strong { color: var(--text2); }
+
+/* ── Badge NEW ── */
+.new-badge {
+  display: inline-block; padding: 1px 7px; border-radius: 20px;
+  background: rgba(34,212,122,.15); color: var(--green);
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; margin-left: 6px; vertical-align: middle;
+}
+
+/* Touch ripple effect */
+.app-card:active { transform: scale(.98); }
+</style>
+</head>
+<body>
+
+<div class="ambient"></div>
+<div class="grid-overlay"></div>
+
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="logo-ring">💊</div>
+    <div class="sys-title">ระบบบริหารจัดการคลังยา</div>
+    <div class="sys-sub">PCU สะบ้าย้อย · อ.สะบ้าย้อย จ.สงขลา</div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar">
+    <div class="status-dot"></div>
+    <span>ระบบพร้อมใช้งาน — GitHub Pages</span>
+    <span style="margin-left:auto;font-family:var(--mono);font-size:11px;opacity:.6;" id="cur-date"></span>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="sec-label">ข้อมูลระบบ</div>
+  <div class="quick-stats">
+    <div class="qs-card qs-blue">
+      <div class="qs-val">118</div>
+      <div class="qs-label">รายการยา</div>
+    </div>
+    <div class="qs-card qs-teal">
+      <div class="qs-val">3</div>
+      <div class="qs-label">โมดูล</div>
+    </div>
+    <div class="qs-card qs-amber">
+      <div class="qs-val" id="tmt-count">—</div>
+      <div class="qs-label">จับคู่ TMT</div>
+    </div>
+  </div>
+
+  <!-- App Cards -->
+  <div class="sec-label">เมนูหลัก</div>
+  <div class="cards">
+
+    <!-- Drug Management System -->
+    <a class="app-card blue" href="drug_system.html">
+      <div class="card-inner">
+        <div class="card-icon">🏥</div>
+        <div class="card-text">
+          <div class="card-title">ระบบจัดการคลังยา</div>
+          <div class="card-desc">รับยาเข้า · เบิกยาออก · ดูคลังยา · ประวัติ · แจ้งเตือน LINE</div>
+          <div class="card-tags">
+            <span class="tag">รับยา</span>
+            <span class="tag">เบิกยา</span>
+            <span class="tag">คลังยา</span>
+            <span class="tag">LINE Notify</span>
+          </div>
+        </div>
+        <div class="card-arrow">›</div>
+      </div>
+    </a>
+
+    <!-- Barcode Scanner -->
+    <a class="app-card teal" href="barcode_scanner.html">
+      <div class="card-inner">
+        <div class="card-icon">📷</div>
+        <div class="card-text">
+          <div class="card-title">
+            สแกนบาร์โค้ดยา
+            <span class="new-badge">NEW</span>
+          </div>
+          <div class="card-desc">เปิดกล้องมือถือสแกน EAN-13, Code 128, GS1-128, QR Code</div>
+          <div class="card-tags">
+            <span class="tag">EAN-13</span>
+            <span class="tag">GS1-128</span>
+            <span class="tag">QR Code</span>
+            <span class="tag">LOT + EXP</span>
+          </div>
+        </div>
+        <div class="card-arrow">›</div>
+      </div>
+    </a>
+
+    <!-- TMT Sync -->
+    <a class="app-card amber" href="tmt_sync_tool.html">
+      <div class="card-inner">
+        <div class="card-icon">🔬</div>
+        <div class="card-text">
+          <div class="card-title">
+            TMT Sync Tool
+            <span class="new-badge">NEW</span>
+          </div>
+          <div class="card-desc">จับคู่รหัสยา PCU กับมาตรฐาน TMT ของ สมสท. ส่งออก CSV</div>
+          <div class="card-tags">
+            <span class="tag">TMT Standard</span>
+            <span class="tag">Export CSV</span>
+            <span class="tag">สมสท.</span>
+          </div>
+        </div>
+        <div class="card-arrow">›</div>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <strong>PCU สะบ้าย้อย</strong> · หน่วยบริการปฐมภูมิ<br>
+    อำเภอสะบ้าย้อย จังหวัดสงขลา<br>
+    <span style="color:var(--text3);font-size:10px;">Powered by GitHub Pages · jsQR · IBM Plex Sans Thai</span>
+  </div>
+
+</div>
+
+<script>
+// Date
+const n = new Date();
+document.getElementById('cur-date').textContent =
+  String(n.getDate()).padStart(2,'0') + '/' +
+  String(n.getMonth()+1).padStart(2,'0') + '/' + n.getFullYear();
+
+// TMT count from localStorage
+const tmtMap = JSON.parse(localStorage.getItem('tmt_map') || '{}');
+const matched = Object.keys(tmtMap).length;
+document.getElementById('tmt-count').textContent = matched || '0';
+</script>
+</body>
+</html>
