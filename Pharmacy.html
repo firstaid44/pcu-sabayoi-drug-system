@@ -2733,7 +2733,7 @@ async function exportInventory(){
       exp:fmtExp(i.exp),
       group:g||'ปกติ',
       status:isR?'ใกล้หมดอายุ':isY?'ระวัง':'ปกติ',
-      lots:i.lots.join(', ')
+      lots:i.lots.join(', ').substring(0,120)
     };
   });
 
@@ -2752,32 +2752,65 @@ async function exportInventory(){
   showAlert('กำลังส่งออกข้อมูลคงคลัง '+rows.length+' รายการ...','info');
 
   try{
-    // ใช้ GET + encodeURIComponent เพื่อหลีกเลี่ยง CORS บน no-cors POST
+    // ── วิธีส่ง: POST แบบ text/plain (หลีกเลี่ยง preflight CORS)
+    // Apps Script รองรับ Content-Type: text/plain โดยไม่ต้องการ preflight
     const payloadObj={
       action:'export_inventory',
-      rows: rows.map(r=>({...r, lots: r.lots.length>80?r.lots.substring(0,80)+'…':r.lots})),
+      rows,
       exportDate:now,
       exportBy
     };
     const payloadStr=JSON.stringify(payloadObj);
-    // URL limit ~7500 chars สำหรับ Apps Script
-    if(payloadStr.length>7000){
-      showAlert('⚠ ข้อมูลมากเกิน URL limit ('+rows.length+' รายการ) กรุณาติดต่อผู้พัฒนา','warning');
+
+    // ถ้าข้อมูลเกิน ให้ truncate ชื่อยาและ lots แต่ไม่หยุด
+    let finalPayload=payloadStr;
+    if(finalPayload.length>50000){
+      showAlert('⚠ ข้อมูลมากผิดปกติ กรุณาตรวจสอบ','warning');
       if(btn){btn.textContent='⬆ ส่งออกคงคลัง';btn.disabled=false;}
       return;
     }
-    const payload=encodeURIComponent(payloadStr);
-    const url=SCRIPT_URL+'?payload='+payload+'&t='+Date.now();
-    const r=await fetch(url,{redirect:'follow'});
-    const j=await r.json();
+
+    const r=await fetch(SCRIPT_URL,{
+      method:'POST',
+      redirect:'follow',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:finalPayload
+    });
+
+    // Apps Script response
+    const text=await r.text();
+    let j={};
+    try{j=JSON.parse(text);}catch(e){
+      // บางครั้ง redirect ทำให้ได้ HTML แทน JSON — ลองอ่าน status จาก text
+      if(text.includes('"ok"')||text.includes('สำเร็จ')){
+        j={status:'ok',message:'ส่งออกสำเร็จ'};
+      }else{
+        throw new Error('response ไม่ใช่ JSON: '+text.substring(0,100));
+      }
+    }
+
     if(j.status==='ok'){
       showAlert('✓ ส่งออกคงคลัง '+rows.length+' รายการ → Sheet "คงคลัง" เรียบร้อย ('+now+')','success');
       addHistory('edit','ส่งออกสรุปคงคลัง',rows.length+' รายการ | '+now+(currentUser?' | '+currentUser.short:''));
     }else{
-      showAlert('ส่งออกไม่สำเร็จ: '+(j.message||''),'danger');
+      // fallback: ลอง GET method (สำหรับ payload ขนาดเล็ก)
+      const pStr=JSON.stringify(payloadObj);
+      if(pStr.length<=6000){
+        const url=SCRIPT_URL+'?payload='+encodeURIComponent(pStr)+'&t='+Date.now();
+        const r2=await fetch(url,{redirect:'follow'});
+        const j2=await r2.json();
+        if(j2.status==='ok'){
+          showAlert('✓ ส่งออกคงคลัง '+rows.length+' รายการ → Sheet "คงคลัง" เรียบร้อย','success');
+          addHistory('edit','ส่งออกสรุปคงคลัง',rows.length+' รายการ | '+now);
+        }else{
+          showAlert('ส่งออกไม่สำเร็จ: '+(j2.message||j.message||''),'danger');
+        }
+      }else{
+        showAlert('ส่งออกไม่สำเร็จ: '+(j.message||'กรุณาลองใหม่'),'danger');
+      }
     }
   }catch(e){
-    showAlert('เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่','danger');
+    showAlert('เชื่อมต่อไม่สำเร็จ: '+e.message,'danger');
   }finally{
     if(btn){btn.textContent='⬆ ส่งออกคงคลัง';btn.disabled=false;}
   }
