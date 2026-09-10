@@ -1,0 +1,9 @@
+# generated at runtime
+dashboard.html
+live.js
+*.tmp
+# MT5 compiled
+*.ex5
+# local
+*.log
+Thumbs.db
